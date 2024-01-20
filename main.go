@@ -9,7 +9,13 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var docStyle = lipgloss.NewStyle().Margin(1, 2)
+var (
+	docStyle = lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder(), true).
+			BorderForeground(lipgloss.Color("69"))
+	leftStyle  lipgloss.Style
+	rightStyle lipgloss.Style
+)
 
 type item struct {
 	title, desc string
@@ -35,7 +41,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		h, v := docStyle.GetFrameSize()
-		m.list.SetSize(msg.Width-h, msg.Height-v)
+		height := msg.Height - v
+		leftWidth := msg.Width/2 - h
+		leftStyle = docStyle.Copy().
+			Width(leftWidth).
+			Height(height)
+		rightWidth := msg.Width - leftStyle.GetWidth() - h*2
+		rightStyle = docStyle.Copy().
+			Width(rightWidth).
+			Height(height)
+		m.list.SetSize(rightStyle.GetWidth(), rightStyle.GetHeight())
 	}
 
 	var cmd tea.Cmd
@@ -44,7 +59,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return docStyle.Render(m.list.View())
+	lw := leftStyle.GetWidth()
+	lh := leftStyle.GetHeight()
+	rw := rightStyle.GetWidth()
+	rh := rightStyle.GetHeight()
+	cw := m.list.Width()
+	ch := m.list.Height()
+
+	left := fmt.Sprintf("left:  %d x %d\n", lw, lh) +
+		fmt.Sprintf("right: %d x %d\n", rw, rh) +
+		fmt.Sprintf("list: %d x %d\n", cw, ch)
+	right := m.list.View()
+	return lipgloss.JoinHorizontal(lipgloss.Top,
+		leftStyle.Render(left),
+		rightStyle.Render(right),
+	)
 }
 
 func main() {
